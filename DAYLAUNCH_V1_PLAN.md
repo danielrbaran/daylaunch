@@ -1,8 +1,9 @@
 # DayLaunch v1 - Planning Document
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Created:** February 6, 2026  
-**Status:** Planning Phase
+**Last Updated:** February 10, 2026  
+**Status:** Planning Phase - Feedback Mechanism Defined
 
 ---
 
@@ -114,8 +115,10 @@ Traditional planning systems (spreadsheets, calendars) require manual maintenanc
 **Inputs:**
 - Recent journal entries (last 7-14 days)
 - Historical completion rates
+- **End-of-day feedback from previous days** (primary learning signal)
 - Current capacity indicators (sleep, energy, recent workload)
 - Category-specific goals and priorities
+- Pattern insights (day-of-week, category preferences, capacity trends)
 - Time constraints (calendar events, if integrated)
 
 **Output:**
@@ -128,8 +131,10 @@ Traditional planning systems (spreadsheets, calendars) require manual maintenanc
 1. LLM analyzes recent journal entries via MCP `get_journal_entries`
 2. Assesses mental state and capacity via MCP `query_capacity_indicators`
 3. Reviews historical patterns via MCP `get_task_history`
-4. Generates plan using MCP `create_daily_plan`
-5. Plan stored in database, exposed to frontend
+4. **Analyzes recent feedback via MCP `get_recent_feedback`** (learns what works)
+5. **Considers pattern insights via MCP `get_pattern_insights`** (applies learned patterns)
+6. Generates plan using MCP `create_daily_plan` (incorporates feedback learnings)
+7. Plan stored in database, exposed to frontend
 
 ### 3.2 Categories
 
@@ -195,12 +200,78 @@ Initial categories to support:
 - Recent workload/completion rates
 - Day of week patterns
 - Historical "what works" data
+- **End-of-day feedback** (newly added)
 
 **Output:**
 - Capacity score (low/medium/high)
 - Recommended task count
 - Suggested intensity levels
 - Time distribution recommendations
+
+### 3.6 End-of-Day Feedback Mechanism
+
+**Purpose:**
+Capture user experience with daily plans to enable continuous learning and improvement. This is the primary feedback loop that allows the system to adapt to the user's actual capacity and preferences.
+
+**Timing:**
+- Modal appears at end of day (configurable time, default: 8pm)
+- Only shows if user hasn't already provided feedback for that day
+- Can be manually triggered from the app
+- "Skip for today" option available (acknowledges that some days users won't have energy)
+
+**Feedback Flow:**
+
+1. **Quick Assessment (One-Click Buttons):**
+   - "Today's plan was about right" ✅
+   - "Today's plan was too much" ⚠️
+   - "Today's plan was ok except for one specific area" 🎯
+
+2. **Category Selector (if "one specific area" selected):**
+   - Shows all categories as buttons
+   - User selects which category was problematic
+   - Stored for pattern recognition
+
+3. **Text Elaboration (Optional but Encouraged):**
+   - Free-form text entry
+   - Prompt: "Tell me more about what worked and what didn't..."
+   - LLM extracts actionable insights automatically
+   - No forced structure - low friction
+
+4. **Activity Log (Optional but Strongly Encouraged):**
+   - Separate affordance/button
+   - Detailed account of what actually happened
+   - "Detail exactly what you did in as much detail as you can remember"
+   - Used for pattern recognition and capacity calibration
+
+**Data Processing:**
+- LLM analyzes text entries to extract:
+  - Specific issues (e.g., "exercise was too early", "work tasks were too vague")
+  - Emotional state indicators
+  - Patterns across days
+- Insights stored separately for quick LLM access
+- Raw data always preserved for future analysis/reporting
+
+**Influence on Planning:**
+- Feedback directly influences next day's plan generation
+- Pattern recognition identifies trends (e.g., "Mondays are harder", "Exercise in morning works better")
+- Capacity assessment refined over time based on feedback
+- Category-specific adjustments when specific areas flagged
+- **Note**: Influence is implicit - no need to show user how feedback affected next plan
+
+**Pattern Recognition (Future Evolution):**
+- System identifies patterns over time:
+  - Day-of-week patterns
+  - Category-specific preferences
+  - Capacity trends
+  - What works vs. what doesn't
+- Data model supports building reports/insights later
+- All raw feedback data preserved for analysis
+
+**Feedback History:**
+- All feedback stored permanently
+- Raw data available for building custom reports
+- Users can review past feedback to see progress
+- Enables "what worked" analysis over time
 
 ---
 
@@ -233,7 +304,25 @@ Initial categories to support:
 - **State Management**: Zustand (React) or Svelte stores
 - **Timeline Component**: Custom or library (e.g., react-calendar-timeline)
 
-### 4.5 Development Tools
+### 4.5 Design System
+
+**Color Theme:**
+- **Primary**: Dark green theme (soothing, calming)
+- Color palette to be defined but centered around dark greens
+- Accessible contrast ratios maintained
+
+**Tone & Personality:**
+- **Light-hearted fun**: Playful elements, encouraging micro-interactions
+- **Genuine encouragement**: Positive reinforcement throughout
+- **Supportive, not judgmental**: Language that supports growth
+- Examples:
+  - Celebration animations for completed tasks
+  - Encouraging messages ("You've got this!", "Small steps add up")
+  - Playful loading states
+  - Gentle reminders (not nagging)
+  - Progress celebrations
+
+### 4.6 Development Tools
 - **Package Manager**: npm/yarn (Node.js) or poetry/pip (Python)
 - **Type Checking**: TypeScript or mypy
 - **Testing**: Jest/Vitest (Node.js) or pytest (Python)
@@ -308,12 +397,44 @@ Initial categories to support:
 - notes: Text?
 ```
 
+#### DailyFeedback
+```
+- id: UUID
+- daily_plan_id: UUID (FK)
+- date: Date
+- overall_rating: Enum (about_right, too_much, one_area)
+- affected_category_id: UUID? (FK, if one_area selected)
+- text_elaboration: Text? (free-form feedback)
+- activity_log: Text? (detailed account of what happened)
+- extracted_insights: JSON? (LLM-extracted actionable insights)
+- sentiment: String? (extracted from text)
+- skipped: Boolean (if user skipped feedback)
+- created_at: DateTime
+- updated_at: DateTime
+```
+
+#### PatternInsight
+```
+- id: UUID
+- pattern_type: Enum (day_of_week, category_preference, capacity_trend, etc.)
+- pattern_data: JSON (structured pattern information)
+- confidence: Float (0-1, how strong the pattern is)
+- first_observed: DateTime
+- last_observed: DateTime
+- is_active: Boolean
+- created_at: DateTime
+```
+
 ### 5.2 Relationships
 - DailyPlan has many Tasks
+- DailyPlan has one DailyFeedback (optional, can be skipped)
+- DailyFeedback belongs to one DailyPlan
+- DailyFeedback can reference one Category (if "one area" selected)
 - Task belongs to one Category
 - Task belongs to one DailyPlan
 - Task has many CompletionHistory entries
 - JournalEntry is standalone (linked via date)
+- PatternInsight is standalone (derived from feedback and completion data)
 
 ---
 
@@ -363,6 +484,30 @@ Initial categories to support:
   - `notes`: String? (optional)
 - **Returns**: Updated task
 
+#### `get_recent_feedback`
+- **Purpose**: Retrieve recent end-of-day feedback for learning
+- **Parameters**:
+  - `days`: Integer (lookback period, default 14)
+  - `category_id`: UUID? (optional filter)
+- **Returns**: Array of feedback with ratings, elaborations, and extracted insights
+
+#### `get_pattern_insights`
+- **Purpose**: Get identified patterns from historical data
+- **Parameters**:
+  - `pattern_type`: Enum? (optional filter)
+  - `min_confidence`: Float? (minimum confidence threshold)
+- **Returns**: Array of pattern insights (day-of-week, category preferences, etc.)
+
+#### `save_daily_feedback`
+- **Purpose**: Store end-of-day feedback
+- **Parameters**:
+  - `daily_plan_id`: UUID
+  - `overall_rating`: Enum
+  - `affected_category_id`: UUID? (if "one area")
+  - `text_elaboration`: String? (optional)
+  - `activity_log`: String? (optional)
+- **Returns**: Saved feedback ID and extracted insights
+
 ### 6.2 Resources (Data LLM can read)
 
 #### `journal://entries/{date}`
@@ -376,6 +521,12 @@ Initial categories to support:
 
 #### `capacity://indicators/{date}`
 - Capacity assessment for a date
+
+#### `feedback://daily/{date}`
+- End-of-day feedback for a specific date
+
+#### `patterns://insights/{type}`
+- Pattern insights by type
 
 ---
 
@@ -433,16 +584,22 @@ Initial categories to support:
 **Deliverable**: Functional PWA displaying plans
 
 ### Phase 5: User Interactions (Week 5-6)
-**Goal**: Users can interact with tasks
+**Goal**: Users can interact with tasks and provide feedback
 
 - [ ] Task completion flow
 - [ ] Task rescheduling
 - [ ] Manual task creation
 - [ ] Journal entry input
 - [ ] Plan regeneration
+- [ ] **End-of-day feedback modal**
+  - Quick assessment buttons
+  - Category selector for "one area" option
+  - Text elaboration input
+  - Activity log input
+  - Skip option
 - [ ] Real-time updates
 
-**Deliverable**: Fully interactive PWA
+**Deliverable**: Fully interactive PWA with feedback mechanism
 
 ### Phase 6: Polish & Refinement (Week 6+)
 **Goal**: Improve UX and reliability
@@ -451,11 +608,26 @@ Initial categories to support:
 - [ ] Loading states
 - [ ] Offline support
 - [ ] Performance optimization
+- [ ] **Dark green theme implementation**
+- [ ] **Encouragement and fun elements throughout UI**
+- [ ] **LLM feedback analysis and insight extraction**
+- [ ] **Pattern recognition (basic implementation)**
 - [ ] UI/UX improvements
 - [ ] Testing and bug fixes
 - [ ] Documentation
 
 **Deliverable**: Production-ready v1.0
+
+### Phase 7: Pattern Recognition & Insights (Post-v1)
+**Goal**: Evolve feedback into actionable insights
+
+- [ ] Advanced pattern recognition algorithms
+- [ ] Pattern insight visualization
+- [ ] Feedback history reports
+- [ ] "What worked" analysis views
+- [ ] Trend visualization over time
+
+**Deliverable**: Intelligent insights from feedback data
 
 ---
 
@@ -464,10 +636,13 @@ Initial categories to support:
 ### 8.1 Functional Requirements
 - ✅ LLM generates daily plans based on journal entries
 - ✅ Plans respect capacity and mental state
+- ✅ **Plans adapt based on end-of-day feedback**
 - ✅ Tasks appear in correct categories and times
 - ✅ Users can complete and reschedule tasks
+- ✅ **End-of-day feedback mechanism functional**
+- ✅ **LLM extracts insights from feedback automatically**
 - ✅ Journal entries are analyzed for mental state
-- ✅ System learns from completion patterns
+- ✅ System learns from completion patterns and feedback
 - ✅ PWA works offline
 
 ### 8.2 Technical Requirements
@@ -481,6 +656,9 @@ Initial categories to support:
 - ✅ Timeline view is intuitive and clear
 - ✅ Categories are easy to distinguish
 - ✅ Tasks are actionable and specific
+- ✅ **Dark green theme is soothing and pleasant**
+- ✅ **Encouraging, light-hearted tone throughout**
+- ✅ **Feedback mechanism is low-friction and optional**
 - ✅ System feels responsive
 - ✅ PWA installs and works like native app
 
@@ -501,6 +679,9 @@ Initial categories to support:
 - Multi-model approach (small for quick queries, large for planning)?
 
 ### 9.3 Advanced Features (Post-v1)
+- **Advanced pattern recognition and visualization**
+- **Feedback history reports and insights**
+- **"What worked" analysis views**
 - Multi-day planning (weekly view)
 - Goal tracking and progress visualization
 - Habit formation analysis
@@ -524,11 +705,21 @@ Initial categories to support:
 - **Local-first**: All data stays on machine, no cloud
 - **Modular design**: Components can be swapped for experimentation
 - **Start simple**: Build MVP, iterate based on usage
+- **Feedback Mechanism**: End-of-day modal with quick buttons, optional elaboration, separate activity log
+- **Feedback Processing**: LLM extracts insights automatically (no forced structure)
+- **Pattern Recognition**: Data model supports it, implementation evolves over time
+- **Design Theme**: Dark green (soothing), light-hearted and encouraging tone
+- **Feedback Influence**: Implicit (no need to show how feedback affected next plan)
+- **Data Preservation**: All raw feedback data saved for future analysis/reporting
 
 ### Key Insights
 - Manual maintenance is the failure point - automation is key
 - Capacity awareness prevents burnout and abandonment
 - Mental state tracking enables personalized planning
+- **Feedback loop is critical for continuous improvement and adaptation**
+- **Low-friction feedback mechanism prevents abandonment**
+- **Pattern recognition enables the system to learn what works for the user**
+- **Encouraging, supportive tone helps maintain engagement**
 - Modular architecture enables experimentation without full rewrites
 
 ---
