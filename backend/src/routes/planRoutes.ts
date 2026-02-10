@@ -1,8 +1,64 @@
 import express from 'express';
 import { DailyPlanService } from '../services/dailyPlanService.js';
+import { CategoryService } from '../services/categoryService.js';
+import { generatePlan } from '../services/planningEngine.js';
+import prisma from '../lib/prisma.js';
 
 const router = express.Router();
 const planService = new DailyPlanService();
+const categoryService = new CategoryService();
+
+// Generate a new daily plan using the LLM (Phase 3)
+router.post('/generate', async (req, res) => {
+  try {
+    const dateStr = (req.body?.date ?? req.query.date) as string;
+    if (!dateStr) {
+      return res.status(400).json({ error: 'date is required (YYYY-MM-DD)' });
+    }
+    const forDate = new Date(dateStr);
+    if (isNaN(forDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid date' });
+    }
+
+    // Normalize to start of day
+    forDate.setHours(0, 0, 0, 0);
+
+    // Optional: prevent overwriting existing plan (set replace: true in body to allow)
+    const replace = req.body?.replace === true;
+    const existing = await planService.findByDate(forDate);
+    if (existing && !replace) {
+      return res.status(409).json({
+        error: 'A plan already exists for this date',
+        planId: existing.id,
+        message: 'Use replace: true in body to regenerate.',
+      });
+    }
+
+    if (existing && replace) {
+      await prisma.task.deleteMany({ where: { dailyPlanId: existing.id } });
+      await prisma.dailyFeedback.deleteMany({ where: { dailyPlanId: existing.id } }).catch(() => {});
+      await prisma.dailyPlan.delete({ where: { id: existing.id } });
+    }
+
+    // Ensure default categories exist for the LLM to use
+    await categoryService.initializeDefaultCategories();
+
+    const { planId, taskCount } = await generatePlan(forDate);
+    const plan = await planService.findById(planId);
+    res.status(201).json({
+      message: 'Plan generated successfully',
+      planId,
+      taskCount,
+      plan,
+    });
+  } catch (error: any) {
+    console.error('Plan generation error:', error);
+    res.status(500).json({
+      error: error.message || 'Plan generation failed',
+      hint: 'Ensure Ollama is running and the model is available (e.g. ollama pull llama3.1:70b)',
+    });
+  }
+});
 
 // Get plan by date
 router.get('/date/:date', async (req, res) => {

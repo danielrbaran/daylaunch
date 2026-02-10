@@ -17,6 +17,9 @@ eggs/
 .eggs/
 lib/
 lib64/
+# Exception: our backend source lib (ollama, prisma)
+!backend/src/lib/
+!backend/src/lib/**
 parts/
 sdist/
 var/

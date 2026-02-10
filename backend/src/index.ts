@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import journalRoutes from './routes/journalRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import planRoutes from './routes/planRoutes.js';
+import { isAvailable as ollamaAvailable } from './lib/ollama.js';
 
 dotenv.config();
 
@@ -17,6 +18,12 @@ app.use(express.json());
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'DayLaunch API is running' });
+});
+
+// Ollama availability (for plan generation)
+app.get('/health/ollama', async (req, res) => {
+  const available = await ollamaAvailable();
+  res.json({ ollama: available, message: available ? 'Ollama is reachable' : 'Ollama is not reachable' });
 });
 
 // API Routes

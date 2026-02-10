@@ -67,14 +67,27 @@ cp backend/.env.example backend/.env
 npm run dev:backend
 ```
 
-5. Start the MCP server (in another terminal):
+5. Start the MCP server (in another terminal, optional for plan generation):
 ```bash
 npm run dev:mcp
 ```
 
+### Generate a daily plan (Phase 3)
+
+With the backend and Ollama running:
+
+1. Ensure Ollama has a model (e.g. `ollama pull llama3.1:70b` or `ollama pull llama3.1:8b`).
+2. Initialize default categories (one-time): `POST http://localhost:3001/api/categories/initialize`
+3. Generate a plan for a date:
+   - `POST http://localhost:3001/api/plans/generate` with body `{ "date": "2026-02-15" }`
+   - To regenerate and replace an existing plan: `{ "date": "2026-02-15", "replace": true }`
+4. Check Ollama: `GET http://localhost:3001/health/ollama`
+
 ## Status
 
-🚧 **Phase 1: Foundation** - Currently in development
+✅ **Phase 1: Foundation** – Complete  
+✅ **Phase 2: Core Data Layer** – Complete  
+✅ **Phase 3: LLM Integration** – Complete (plan generation via Ollama)
 
 See [DAYLAUNCH_V1_PLAN.md](./DAYLAUNCH_V1_PLAN.md) for detailed planning document.
 
