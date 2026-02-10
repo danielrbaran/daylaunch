@@ -19,6 +19,10 @@ import {
   ListResourcesRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import * as journalTools from './tools/journalTools.js';
+import * as planTools from './tools/planTools.js';
+import * as feedbackTools from './tools/feedbackTools.js';
+import prisma from './services/database.js';
 
 // Initialize MCP server
 const server = new Server(
@@ -183,58 +187,172 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
   };
 });
 
-// Handle tool calls (stub implementations for now)
+// Handle tool calls
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
-  // TODO: Implement actual tool handlers with database access
-  switch (name) {
-    case 'get_journal_entries':
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              message: 'Tool not yet implemented',
-              tool: name,
-              args,
-            }),
-          },
-        ],
-      };
+  try {
+    let result;
 
-    default:
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              error: `Unknown tool: ${name}`,
-            }),
-          },
-        ],
-        isError: true,
-      };
+    switch (name) {
+      case 'get_journal_entries':
+        result = await journalTools.getJournalEntries(args);
+        break;
+
+      case 'get_recent_mental_state':
+        result = await journalTools.getRecentMentalState(args);
+        break;
+
+      case 'query_capacity_indicators':
+        result = await planTools.queryCapacityIndicators(args);
+        break;
+
+      case 'get_task_history':
+        result = await planTools.getTaskHistory(args);
+        break;
+
+      case 'create_daily_plan':
+        result = await planTools.createDailyPlan(args);
+        break;
+
+      case 'get_recent_feedback':
+        result = await feedbackTools.getRecentFeedback(args);
+        break;
+
+      case 'get_pattern_insights':
+        result = await feedbackTools.getPatternInsights(args);
+        break;
+
+      case 'save_daily_feedback':
+        result = await feedbackTools.saveDailyFeedback(args);
+        break;
+
+      default:
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                error: `Unknown tool: ${name}`,
+              }),
+            },
+          ],
+          isError: true,
+        };
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  } catch (error: any) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            error: error.message,
+            stack: error.stack,
+          }),
+        },
+      ],
+      isError: true,
+    };
   }
 });
 
-// Handle resource reads (stub implementations for now)
+// Handle resource reads
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const { uri } = request.params;
 
-  // TODO: Implement actual resource handlers
-  return {
-    contents: [
-      {
-        uri,
-        mimeType: 'application/json',
-        text: JSON.stringify({
-          message: 'Resource not yet implemented',
+  try {
+    // Parse URI pattern: journal://entries/{date}
+    if (uri.startsWith('journal://entries/')) {
+      const dateStr = uri.replace('journal://entries/', '');
+      const date = new Date(dateStr);
+      
+      const entries = await prisma.journalEntry.findMany({
+        where: {
+          timestamp: {
+            gte: new Date(date.setHours(0, 0, 0, 0)),
+            lt: new Date(date.setHours(23, 59, 59, 999)),
+          },
+        },
+      });
+
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: 'application/json',
+            text: JSON.stringify(entries, null, 2),
+          },
+        ],
+      };
+    }
+
+    // Parse URI pattern: plan://daily/{date}
+    if (uri.startsWith('plan://daily/')) {
+      const dateStr = uri.replace('plan://daily/', '');
+      const date = new Date(dateStr);
+      
+      const plan = await prisma.dailyPlan.findFirst({
+        where: {
+          date: {
+            gte: new Date(date.setHours(0, 0, 0, 0)),
+            lt: new Date(date.setHours(23, 59, 59, 999)),
+          },
+        },
+        include: {
+          tasks: {
+            include: {
+              category: true,
+            },
+          },
+          feedback: true,
+        },
+      });
+
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: 'application/json',
+            text: JSON.stringify(plan || { message: 'No plan found for this date' }, null, 2),
+          },
+        ],
+      };
+    }
+
+    // Default: return error
+    return {
+      contents: [
+        {
           uri,
-        }),
-      },
-    ],
-  };
+          mimeType: 'application/json',
+          text: JSON.stringify({
+            error: `Resource handler not implemented for: ${uri}`,
+          }),
+        },
+      ],
+    };
+  } catch (error: any) {
+    return {
+      contents: [
+        {
+          uri,
+          mimeType: 'application/json',
+          text: JSON.stringify({
+            error: error.message,
+          }),
+        },
+      ],
+    };
+  }
 });
 
 // Start server
