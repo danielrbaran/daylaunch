@@ -13,7 +13,7 @@ datasource db {
 model JournalEntry {
   id           String   @id @default(uuid())
   timestamp    DateTime @default(now())
-  content      String   @db.Text
+  content      String
   mood         String?
   energyLevel  Int?     @map("energy_level")
   sleepQuality Int?     @map("sleep_quality")
@@ -31,7 +31,7 @@ model Category {
   color          String   @default("#10b981") // Default dark green
   icon           String?
   priority       Int      @default(0)
-  timePreferences String? @map("time_preferences") @db.Text // JSON string
+  timePreferences String? @map("time_preferences") // JSON string
   frequency      String?
   enabled        Boolean  @default(true)
   createdAt      DateTime @default(now()) @map("created_at")
@@ -46,9 +46,9 @@ model Category {
 
 model DailyPlan {
   id                String   @id @default(uuid())
-  date              DateTime @unique @db.Date
+  date              DateTime @unique
   capacityScore     String   @map("capacity_score") // low/medium/high
-  mentalStateSummary String? @map("mental_state_summary") @db.Text
+  mentalStateSummary String? @map("mental_state_summary")
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
@@ -64,13 +64,13 @@ model Task {
   dailyPlanId     String    @map("daily_plan_id")
   categoryId      String    @map("category_id")
   title           String
-  description     String?   @db.Text
+  description     String?
   scheduledTime   DateTime? @map("scheduled_time")
   durationMinutes Int?      @map("duration_minutes")
   priority        Int       @default(3) // 1-5
   status          String    @default("pending") // pending, in_progress, completed, skipped
   completedAt     DateTime? @map("completed_at")
-  notes           String?   @db.Text
+  notes           String?
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
@@ -89,7 +89,7 @@ model CompletionHistory {
   taskId              String   @map("task_id")
   completedAt        DateTime  @map("completed_at")
   actualDurationMinutes Int?   @map("actual_duration_minutes")
-  notes               String?  @db.Text
+  notes               String?
 
   task                Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
@@ -101,12 +101,12 @@ model CompletionHistory {
 model DailyFeedback {
   id                String    @id @default(uuid())
   dailyPlanId       String    @unique @map("daily_plan_id")
-  date              DateTime  @db.Date
+  date              DateTime
   overallRating     String    @map("overall_rating") // about_right, too_much, one_area
   affectedCategoryId String?   @map("affected_category_id")
-  textElaboration   String?   @map("text_elaboration") @db.Text
-  activityLog       String?   @map("activity_log") @db.Text
-  extractedInsights String?   @map("extracted_insights") @db.Text // JSON string
+  textElaboration   String?   @map("text_elaboration")
+  activityLog       String?   @map("activity_log")
+  extractedInsights String?   @map("extracted_insights") // JSON string
   sentiment         String?
   skipped           Boolean   @default(false)
   createdAt         DateTime  @default(now()) @map("created_at")
@@ -123,7 +123,7 @@ model DailyFeedback {
 model PatternInsight {
   id            String   @id @default(uuid())
   patternType   String   @map("pattern_type") // day_of_week, category_preference, capacity_trend, etc.
-  patternData   String   @map("pattern_data") @db.Text // JSON string
+  patternData   String   @map("pattern_data") // JSON string
   confidence    Float    @default(0.0)
   firstObserved DateTime @map("first_observed")
   lastObserved  DateTime @map("last_observed")
