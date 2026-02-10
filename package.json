@@ -1,0 +1,26 @@
+{
+  "name": "daylaunch",
+  "version": "1.0.0",
+  "description": "A local-first, AI-powered daily planning system",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "mcp-server",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:mcp": "npm run dev --workspace=mcp-server",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspaces",
+    "install:all": "npm install --workspaces"
+  },
+  "keywords": [
+    "ai",
+    "planning",
+    "local-llm",
+    "pwa"
+  ],
+  "author": "Daniel Baran",
+  "license": "MIT"
+}

@@ -13,23 +13,73 @@ DayLaunch solves the problem of manual planning system maintenance by using a lo
 - 🧩 **Modular Architecture**: Components can be swapped for experimentation
 - 📱 **PWA**: Works offline, feels native, accessible across devices
 - 📊 **Dynamic Planning**: Adapts to your mental state and capacity
+- 💚 **Dark Green Theme**: Soothing, calming visual design
 
 ## Architecture
 
 - **Frontend**: PWA with timeline view (React/SvelteKit)
-- **Backend**: API server (FastAPI/Express)
+- **Backend**: API server (Express/TypeScript)
 - **MCP Server**: Data access layer for LLM
-- **LLM**: Local models via Ollama/LM Studio
-- **Database**: SQLite/PostgreSQL + Vector DB
+- **LLM**: Local models via Ollama (Llama 3.1 70B)
+- **Database**: SQLite + Prisma ORM
 
-## Status
+## Project Structure
 
-🚧 **Planning Phase** - See [DAYLAUNCH_V1_PLAN.md](./DAYLAUNCH_V1_PLAN.md) for detailed planning document.
+```
+daylaunch/
+├── backend/          # Express API server
+├── mcp-server/       # MCP server for LLM integration
+├── frontend/         # PWA frontend (coming soon)
+└── DAYLAUNCH_V1_PLAN.md  # Detailed planning document
+```
 
 ## Getting Started
 
-_Coming soon - project is in early development_
+### Prerequisites
+
+- Node.js 18+ and npm
+- Ollama installed and running locally
+- Llama 3.1 70B model downloaded in Ollama
+
+### Installation
+
+1. Install dependencies:
+```bash
+npm install
+npm run install:all
+```
+
+2. Set up the database:
+```bash
+cd backend
+npm run db:generate
+npm run db:push
+```
+
+3. Configure environment variables:
+```bash
+cp backend/.env.example backend/.env
+# Edit backend/.env with your settings
+```
+
+4. Start the backend:
+```bash
+npm run dev:backend
+```
+
+5. Start the MCP server (in another terminal):
+```bash
+npm run dev:mcp
+```
+
+## Status
+
+🚧 **Phase 1: Foundation** - Currently in development
+
+See [DAYLAUNCH_V1_PLAN.md](./DAYLAUNCH_V1_PLAN.md) for detailed planning document.
 
 ## License
 
-_To be determined_
+MIT License - See LICENSE file for details
+
+Built with Llama 3.1 (Meta)

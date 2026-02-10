@@ -98,3 +98,6 @@ workbox-*.js
 
 # Local development
 .local/
+
+# Prisma
+backend/prisma/migrations/

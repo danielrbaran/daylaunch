@@ -1,0 +1,136 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model JournalEntry {
+  id           String   @id @default(uuid())
+  timestamp    DateTime @default(now())
+  content      String   @db.Text
+  mood         String?
+  energyLevel  Int?     @map("energy_level")
+  sleepQuality Int?     @map("sleep_quality")
+  embedding    String?  // JSON string for vector embedding
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("journal_entries")
+  @@index([timestamp])
+}
+
+model Category {
+  id             String   @id @default(uuid())
+  name           String   @unique
+  color          String   @default("#10b981") // Default dark green
+  icon           String?
+  priority       Int      @default(0)
+  timePreferences String? @map("time_preferences") @db.Text // JSON string
+  frequency      String?
+  enabled        Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  tasks          Task[]
+  feedback       DailyFeedback[]
+
+  @@map("categories")
+  @@index([enabled, priority])
+}
+
+model DailyPlan {
+  id                String   @id @default(uuid())
+  date              DateTime @unique @db.Date
+  capacityScore     String   @map("capacity_score") // low/medium/high
+  mentalStateSummary String? @map("mental_state_summary") @db.Text
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  tasks             Task[]
+  feedback          DailyFeedback?
+
+  @@map("daily_plans")
+  @@index([date])
+}
+
+model Task {
+  id              String    @id @default(uuid())
+  dailyPlanId     String    @map("daily_plan_id")
+  categoryId      String    @map("category_id")
+  title           String
+  description     String?   @db.Text
+  scheduledTime   DateTime? @map("scheduled_time")
+  durationMinutes Int?      @map("duration_minutes")
+  priority        Int       @default(3) // 1-5
+  status          String    @default("pending") // pending, in_progress, completed, skipped
+  completedAt     DateTime? @map("completed_at")
+  notes           String?   @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  dailyPlan       DailyPlan @relation(fields: [dailyPlanId], references: [id], onDelete: Cascade)
+  category        Category  @relation(fields: [categoryId], references: [id])
+  completionHistory CompletionHistory[]
+
+  @@map("tasks")
+  @@index([dailyPlanId])
+  @@index([categoryId])
+  @@index([status])
+}
+
+model CompletionHistory {
+  id                  String   @id @default(uuid())
+  taskId              String   @map("task_id")
+  completedAt        DateTime  @map("completed_at")
+  actualDurationMinutes Int?   @map("actual_duration_minutes")
+  notes               String?  @db.Text
+
+  task                Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("completion_history")
+  @@index([taskId])
+  @@index([completedAt])
+}
+
+model DailyFeedback {
+  id                String    @id @default(uuid())
+  dailyPlanId       String    @unique @map("daily_plan_id")
+  date              DateTime  @db.Date
+  overallRating     String    @map("overall_rating") // about_right, too_much, one_area
+  affectedCategoryId String?   @map("affected_category_id")
+  textElaboration   String?   @map("text_elaboration") @db.Text
+  activityLog       String?   @map("activity_log") @db.Text
+  extractedInsights String?   @map("extracted_insights") @db.Text // JSON string
+  sentiment         String?
+  skipped           Boolean   @default(false)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  dailyPlan         DailyPlan @relation(fields: [dailyPlanId], references: [id], onDelete: Cascade)
+  affectedCategory  Category? @relation(fields: [affectedCategoryId], references: [id])
+
+  @@map("daily_feedback")
+  @@index([date])
+  @@index([overallRating])
+}
+
+model PatternInsight {
+  id            String   @id @default(uuid())
+  patternType   String   @map("pattern_type") // day_of_week, category_preference, capacity_trend, etc.
+  patternData   String   @map("pattern_data") @db.Text // JSON string
+  confidence    Float    @default(0.0)
+  firstObserved DateTime @map("first_observed")
+  lastObserved  DateTime @map("last_observed")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("pattern_insights")
+  @@index([patternType, isActive])
+  @@index([confidence])
+}
