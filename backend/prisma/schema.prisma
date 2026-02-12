@@ -39,6 +39,7 @@ model Category {
 
   tasks          Task[]
   feedback       DailyFeedback[]
+  poolItems      PoolItem[]
 
   @@map("categories")
   @@index([enabled, priority])
@@ -63,11 +64,12 @@ model Task {
   id              String    @id @default(uuid())
   dailyPlanId     String    @map("daily_plan_id")
   categoryId      String    @map("category_id")
+  poolItemId      String?   @map("pool_item_id") // Optional: if this task came from the Pool
   title           String
   description     String?
   scheduledTime   DateTime? @map("scheduled_time")
   durationMinutes Int?      @map("duration_minutes")
-  priority        Int       @default(3) // 1-5
+  priority        Int       @default(3) // 1-5, suggested order only
   status          String    @default("pending") // pending, in_progress, completed, skipped
   completedAt     DateTime? @map("completed_at")
   notes           String?
@@ -76,11 +78,13 @@ model Task {
 
   dailyPlan       DailyPlan @relation(fields: [dailyPlanId], references: [id], onDelete: Cascade)
   category        Category  @relation(fields: [categoryId], references: [id])
+  poolItem        PoolItem? @relation(fields: [poolItemId], references: [id], onDelete: SetNull)
   completionHistory CompletionHistory[]
 
   @@map("tasks")
   @@index([dailyPlanId])
   @@index([categoryId])
+  @@index([poolItemId])
   @@index([status])
 }
 
@@ -118,6 +122,32 @@ model DailyFeedback {
   @@map("daily_feedback")
   @@index([date])
   @@index([overallRating])
+}
+
+model PoolItem {
+  id            String   @id @default(uuid())
+  type          String   // task | event | aspiration
+  title         String
+  notes         String?
+  categoryId    String?  @map("category_id") // Optional, for task/aspiration
+  scheduledAt   DateTime? @map("scheduled_at") // Events only: when it happens
+  scheduledEnd  DateTime? @map("scheduled_end") // Optional, events only: end of duration
+  status        String   @default("active") // active | paused | completed
+  lastUsedAt    DateTime? @map("last_used_at") // Last date this item was used in a plan
+  useCount      Int      @default(0) @map("use_count") // How many times used in a plan
+  cooldownDays  Int?     @map("cooldown_days") // Optional override; else use global default
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  category      Category? @relation(fields: [categoryId], references: [id])
+  tasks         Task[]    // Tasks created from this Pool item
+
+  @@map("pool_items")
+  @@index([type])
+  @@index([status])
+  @@index([categoryId])
+  @@index([scheduledAt]) // For events: find events for a date
+  @@index([lastUsedAt]) // For cooldown filtering
 }
 
 model PatternInsight {

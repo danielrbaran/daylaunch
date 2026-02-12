@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import journalRoutes from './routes/journalRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import planRoutes from './routes/planRoutes.js';
+import poolRoutes from './routes/poolRoutes.js';
 import { isAvailable as ollamaAvailable } from './lib/ollama.js';
 
 dotenv.config();
@@ -30,6 +31,7 @@ app.get('/health/ollama', async (req, res) => {
 app.use('/api/journals', journalRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/plans', planRoutes);
+app.use('/api/pool', poolRoutes);
 
 // Start server
 app.listen(PORT, () => {
@@ -39,4 +41,5 @@ app.listen(PORT, () => {
   console.log(`   - Journals: http://localhost:${PORT}/api/journals`);
   console.log(`   - Categories: http://localhost:${PORT}/api/categories`);
   console.log(`   - Plans: http://localhost:${PORT}/api/plans`);
+  console.log(`   - Pool: http://localhost:${PORT}/api/pool`);
 });

@@ -10,6 +10,7 @@ export interface CreateDailyPlanInput {
 export interface CreateTaskInput {
   dailyPlanId: string;
   categoryId: string;
+  poolItemId?: string; // Optional: if this task came from the Pool
   title: string;
   description?: string;
   scheduledTime?: Date;
@@ -47,6 +48,7 @@ export class DailyPlanService {
         tasks: {
           include: {
             category: true,
+            poolItem: true,
           },
           orderBy: [
             { scheduledTime: 'asc' },
@@ -65,6 +67,7 @@ export class DailyPlanService {
         tasks: {
           include: {
             category: true,
+            poolItem: true,
           },
         },
         feedback: true,
@@ -77,6 +80,7 @@ export class DailyPlanService {
       data: {
         dailyPlanId: data.dailyPlanId,
         categoryId: data.categoryId,
+        poolItemId: data.poolItemId || null,
         title: data.title,
         description: data.description,
         scheduledTime: data.scheduledTime,
@@ -85,6 +89,7 @@ export class DailyPlanService {
       },
       include: {
         category: true,
+        poolItem: true,
       },
     });
   }

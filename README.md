@@ -1,10 +1,10 @@
 # DayLaunch
 
-A local-first, AI-powered daily planning system that dynamically builds personalized daily schedules based on mental state, capacity, and goals.
+A local-first, AI-powered daily planning system that dynamically builds personalized daily schedules based on mental state, capacity, and **curiosity**—not goals. Plans are guided by "I wonder…" (invitations to explore) rather than "I will…" (targets to hit). Any action taken is celebrated.
 
 ## Overview
 
-DayLaunch solves the problem of manual planning system maintenance by using a local LLM to analyze journal entries, assess capacity, and generate realistic daily plans across multiple life categories.
+DayLaunch solves the problem of manual planning system maintenance by using a local LLM to analyze journal entries, assess capacity, and generate kind, curiosity-led daily plans across life categories. No goal structure; no pass/fail. See [DAYLAUNCH_V1_PLAN.md](./DAYLAUNCH_V1_PLAN.md) §1.4 for the core philosophy.
 
 ## Key Features
 
@@ -12,7 +12,7 @@ DayLaunch solves the problem of manual planning system maintenance by using a lo
 - 🔒 **Privacy-First**: All data stays local, never leaves your PC
 - 🧩 **Modular Architecture**: Components can be swapped for experimentation
 - 📱 **PWA**: Works offline, feels native, accessible across devices
-- 📊 **Dynamic Planning**: Adapts to your mental state and capacity
+- 📊 **Dynamic Planning**: Adapts to your mental state and capacity; curiosity-led ("I wonder…"), not goal-based
 - 💚 **Dark Green Theme**: Soothing, calming visual design
 
 ## Architecture
